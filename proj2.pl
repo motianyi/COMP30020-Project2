@@ -6,22 +6,26 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-%% Define the test suite by defining a predicate test/4:
-%%	test(Goal,Expected,LimitSecs,Weight)
-%% such that Goal is a test goal, Expected is a list of all the solutions of Goal
-%% specified as a list of instantiations of Goal.  LimitSecs is the time to allow
-%% for all solutions of Goal to be found, and Weight is the value of this one test,
-%% relative to all the others, expressed as a number.  The number itself is
-%% unimportant; only its value relative to other weights matters.  This permits
-%% some tests to be given greater than others.
 
 
+%   Puzzle
+%   | _ |C1 |C2 |C3 | . .|Cn |
+%   |R1 |X11|X12|X13| . .|X1n|
+%   |R2 |X21|X22|X23| . .|X2n|
+%   |R3 |X31|X32|X33| . .|X3n|
+%   |.  |.  |.  |.  | .  |.  |
+%   |.  |.  |.  |.  |   .|.  |
+%   |Rn |Xn1|Xn2|Xn3|.  .|Xnn|
 
+%   Rule: 
+%
+
+% used library
 :-ensure_loaded(library(clpfd)).
 :-ensure_loaded(library(apply)).
 
 
-% puzzle_solution/1 
+% puzzle_solution/1 take a Puzzle and apply the constrains to the Puzzle
 
 puzzle_solution(Puzzle) :-
     maplist(same_length(Puzzle), Puzzle),
@@ -33,7 +37,9 @@ puzzle_solution(Puzzle) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% The numbers greater than 1 and less than 
+% number_constraint/1 hold when the numbers in the Puzzle has no repetition in
+% all non-heading cloumns and rows, and all numbers that are not in headings 
+%are integers that greater than or equal to 1 and less than or equal to 9.
 number_constraint(Puzzle):-
     Puzzle = [_|Rows],
     maplist(row_number_constraint,Rows),
@@ -42,22 +48,29 @@ number_constraint(Puzzle):-
     TransposePuzzle = [_|Cloumns],
     maplist(no_repeated_number,Cloumns).
 
-% each number in row need have size limit
+% row_number_constraint/1 take a row or column of Puzzle and holds when each 
+% number in list (except the head) satisfy the size limit
 row_number_constraint([_|Row]):- 
     maplist(size_limit,Row).
 
-%distinct number in a row or column except the heading
+% no_repeated_number/1 take a row or column of Puzzle and holds when each 
+% number in list (except the head) are all distinct(no repetition). It use 
+% all_distinct/1 from prolog clpfd library which detect whether all variable 
+% in the List are distinct.
 no_repeated_number([_|Row]):-
     all_distinct(Row).
 
-% Set size restriction for elements, element should 1<=x<=9
+% size_limit/1 take a variable X and is true when the vatiable is greater than 
+% or equal to 1 and less than or equal to 9. It use clpfd function "in/2"
 size_limit(X):- X in 1..9.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%The diagonal of matrix satisty the constraint are equal
-diagonal_constraint(Matrix) :- 
-    matrix_diag(Matrix, Diag), 
+
+% diagonal_constraint/1 hold when the diagnal variables (top left to 
+% bottom right) in the Puzzle are equal except heading.
+diagonal_constraint(Puzzle) :- 
+    matrix_diag(Puzzle, Diag), 
     list_tail_equal(Diag).
 
 %list equal except the first element
@@ -68,18 +81,25 @@ equal(_,[]).
 equal(X,[Y|Ys]):-equal(X,Ys),X=Y.
 
 
-% get the diagonal of the matrix
+% matrix_diag/2 take Matrix and Matrix and List, is true when the list is the 
+% top left to bottom right diagonal of the Matrix.
 matrix_diag([], []).
-matrix_diag([[X|_]|RestRows], [X|RestDiagonals]) :-
+matrix_diag(Matrix, Diagnal) :-
+    Matrix = [[X|_]|RestRows],
+    Diagnal = [X|RestDiagonals],
     maplist(remove_head, RestRows, RestRowsTail),
     matrix_diag(RestRowsTail, RestDiagonals).
 
-%remove the first element of the list
+% remove_head/2 take two Lists and return when the second list is equal to the 
+% first list remove the head element
 remove_head([_|Xs], Xs).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% number_constraint/1 hold when the numbers in the Puzzle has no repetition in
+% all non-heading cloumns and rows, and all numbers that are not in headings 
+%are integers that greater than or equal to 1 and less than or equal to 9.
 heading_constraint(Puzzle):-
     transpose(Puzzle, TransposePuzzle),
     Puzzle = [_|Rows],
@@ -93,17 +113,29 @@ heading_constraint(Puzzle):-
 list_heading_constraint([X|Xs]):-sum_constraint([X|Xs]).
 list_heading_constraint([X|Xs]):-product_constraint([X|Xs]).
 
-sum_constraint([X|Xs]):- sum_row(Xs, 0, X).
-sum_row([], X, X).
-sum_row([Y|Ys], A, X) :-
-    A1 #= Y + A,
-    sum_row(Ys, A1, X).
+% sum_constraint/1 take a list and is true when the first element is equal
+% to the sum of other elements.
+sum_constraint([X|Xs]):- sum_list(Xs, 0, X).
 
-product_constraint([X|Xs]):- product_row(Xs, 1, X).
-product_row([], X, X).
-product_row([Y|Ys], A, X) :-
+% sum_list/3 take a list, a accumulator A and Sum and is true when 
+% the list the Sum is equal to the sum of elements in the list.
+% The accumulator is for holding partially computed sum and tail recursion.
+sum_list([], Sum, Sum).
+sum_list([Y|Ys], A, Sum) :-
+    A1 #= Y + A,
+    sum_list(Ys, A1, Sum).
+
+% product_constraint/1 take a list and is true when the first element is equal
+% to the product of other elements.
+product_constraint([X|Xs]):- product_list(Xs, 1, X).
+
+% product_list/3 take a list, a accumulator A and Product and is true when 
+% the list the Product is equal to the product of elements in the list.
+% The accumulator is for holding partially computed product and tail recursion.
+product_list([], Product, Product).
+product_list([Y|Ys], A, Product) :-
     A1 #= Y * A,
-    product_row(Ys, A1, X).
+    product_list(Ys, A1, Product).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

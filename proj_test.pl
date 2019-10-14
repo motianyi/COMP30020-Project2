@@ -7,7 +7,7 @@
 %  generated in the same way, and of similar difficulty.
 
 :- ensure_loaded(prologtest).
-:- ensure_loaded(project2).
+:- ensure_loaded(proj2).
 
 test(puzzle_solution([[0,45,72],[72,_,_],[14,_,_]]),[puzzle_solution([[0,45,72],[72,9,8],[14,5,9]])],20,1).
 test(puzzle_solution([[0,11,36],[13,_,_],[18,_,_]]),[puzzle_solution([[0,11,36],[13,9,4],[18,2,9]])],20,1).
