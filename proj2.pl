@@ -1,11 +1,27 @@
-%  File     : project2.pl
-%  Author   : Tianyi Mo
-%  Date     : October 2019
-%  Purpose  : COMP30020 Declarative Programming Project 2
-%  Language : Prolog
+%  File       : project2.pl
+%  Author     : Tianyi Mo
+%  Student ID : 875556
+%  Date       : October 2019
+%  Purpose    : COMP30020 Declarative Programming Project 2
+%  Language   : Prolog
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
+% This file implement the puzzle_solution(Puzzle)
+
+% Define the test puzzle solution finder by defining a puzzle_solution/1
+% puzzle_solution(Puzzle)
+% such that Puzzle is a list of list represent square matrix, 
+%
+% The strategy used is to decompose the complex problem to 4 simpler
+% constraints, square_matrix_constriant, number_constraint, diagonal_constraint
+% and heading_constraint. Each of them test specific part of restriction of the
+% puzzle.
+
+
+
+% used library
+:-ensure_loaded(library(clpfd)).
+:-ensure_loaded(library(apply)).
 
 
 %   Puzzle
@@ -20,37 +36,73 @@
 %   Rule: 
 %
 
-% used library
-:-ensure_loaded(library(clpfd)).
-:-ensure_loaded(library(apply)).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Code Structure
+%
+% The codes are divided into 5 sections, the first section (SECTION 0) contains 
+% puzzle_solution/1, puzzle_solution/1 uses the predicts of other sections.
+% SECTION 0 PUZZLE_SOLUTION
+% SECTION 1 SQUARE_MAXTIX_CONSTRAINT
+% SECTION 2 NUMBER_CONSTRAINT
+% SECTION 3 DIAGONAL_CONSTRAINT
+% SECTION 4 HEADING_CONSTRAINT
 
-% puzzle_solution/1 take a Puzzle and apply the constrains to the Puzzle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECTION 0 PUZZLE_SOLUTION
+%
+% puzzle_solution/1 take a Puzzle and holds when the Puzzle satisfy following 
+% 4 constraints: 
+% 1.square_matrix_constraint: 
+%       Hold when the Puzzle is square.
+% 2.number_constraint:        
+%       Hold when variables in Puzzle are in correct range and there is no 
+%       deplication in any row or column.
+% 3.diagonal_constraint:      
+%       Hold when the diagonal elements of Puzzle are same.
+% 4.heading_constraint:       
+%       Hold when the heading of each row and cloumn is equal to sum or product
+%       of other variables.
+% it also use label/1 in clpfd library that systematically trying out values 
+% for the finite domain variables Vars until all of them are ground.
 
 puzzle_solution(Puzzle) :-
-    maplist(same_length(Puzzle), Puzzle),
+    % satisfy all 4 constraints
+    square_matrix_constriant(Puzzle),
     number_constraint(Puzzle),
     diagonal_constraint(Puzzle),
     heading_constraint(Puzzle),
-    no_variable(Puzzle).
-
+    % labelling
+    maplist(label, Puzzle).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECTION 1 SQUARE_MAXTIX_CONSTRAINT: 
+%
+% square_matrix_constriant/1 hold when the puzzle is a square matrix, it use
+% prolog same_length predicate and maplist in apply library to ensure every 
+% row in the Puzzle have same number of elements as the number of rows.
+square_matrix_constriant(Puzzle):-
+    maplist(same_length(Puzzle), Puzzle).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECTION 2 NUMBER_CONSTRAINT
+%
 % number_constraint/1 hold when the numbers in the Puzzle has no repetition in
 % all non-heading cloumns and rows, and all numbers that are not in headings 
-%are integers that greater than or equal to 1 and less than or equal to 9.
+% are integers that greater than or equal to 1 and less than or equal to 9.
+% The no_repeated_number is applied for both rows and columns, and the size
+% constraint is only applied for rows.
 number_constraint(Puzzle):-
     Puzzle = [_|Rows],
-    maplist(row_number_constraint,Rows),
+    maplist(row_size_constraint,Rows),
     maplist(no_repeated_number,Rows),
     transpose(Puzzle, TransposePuzzle),
     TransposePuzzle = [_|Cloumns],
     maplist(no_repeated_number,Cloumns).
 
-% row_number_constraint/1 take a row or column of Puzzle and holds when each 
+% row_size_constraint/1 take a row or column of Puzzle and holds when each 
 % number in list (except the head) satisfy the size limit
-row_number_constraint([_|Row]):- 
+row_size_constraint([_|Row]):- 
     maplist(size_limit,Row).
 
 % no_repeated_number/1 take a row or column of Puzzle and holds when each 
@@ -60,25 +112,33 @@ row_number_constraint([_|Row]):-
 no_repeated_number([_|Row]):-
     all_distinct(Row).
 
-% size_limit/1 take a variable X and is true when the vatiable is greater than 
+% size_limit/1 take a variable X and is true when the variable is greater than 
 % or equal to 1 and less than or equal to 9. It use clpfd function "in/2"
 size_limit(X):- X in 1..9.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% SECTION 3 DIAGONAL_CONSTRAINT
+%
 % diagonal_constraint/1 hold when the diagnal variables (top left to 
 % bottom right) in the Puzzle are equal except heading.
 diagonal_constraint(Puzzle) :- 
     matrix_diag(Puzzle, Diag), 
     list_tail_equal(Diag).
 
-%list equal except the first element
-list_tail_equal([_|Xs]):- equal(Xs).
+% list equal except the first element
+list_tail_equal([_|Xs]):-
+     equal(Xs).
 
-equal([X|Xs]):-equal(X,Xs).
+% equal/1 take a list and is true when all elements in the list are equal.
+equal([X|Xs]):-
+    equal(X,Xs).
+
+% equal/2 take a number X and a list, it is true when all elements in the 
+% list are equal to X.
 equal(_,[]).
-equal(X,[Y|Ys]):-equal(X,Ys),X=Y.
+equal(X,[Y|Ys]):-
+    equal(X,Ys),X=Y.
 
 
 % matrix_diag/2 take Matrix and Matrix and List, is true when the list is the 
@@ -96,10 +156,11 @@ remove_head([_|Xs], Xs).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% number_constraint/1 hold when the numbers in the Puzzle has no repetition in
+% SECTION 4 HEADING_CONSTRAINT
+%
+% heading_constraint/1 hold when the numbers in the Puzzle has no repetition in
 % all non-heading cloumns and rows, and all numbers that are not in headings 
-%are integers that greater than or equal to 1 and less than or equal to 9.
+% are integers that greater than or equal to 1 and less than or equal to 9.
 heading_constraint(Puzzle):-
     transpose(Puzzle, TransposePuzzle),
     Puzzle = [_|Rows],
@@ -108,14 +169,17 @@ heading_constraint(Puzzle):-
     maplist(list_heading_constraint, Cloumns).
 
 
-%The heading of each row need to be either sum of row or product of row
-%thus each row satisfy on of these constraints.
-list_heading_constraint([X|Xs]):-sum_constraint([X|Xs]).
-list_heading_constraint([X|Xs]):-product_constraint([X|Xs]).
+% list_heading_constraint/1 take a list (row or column of Puzzle), it is true
+% when the heading equal to sum of rest or product of rest. It uses the prolog
+% disjunction operator ";".
+list_heading_constraint([X|Xs]):-
+    sum_constraint([X|Xs]);
+    product_constraint([X|Xs]).
 
 % sum_constraint/1 take a list and is true when the first element is equal
 % to the sum of other elements.
-sum_constraint([X|Xs]):- sum_list(Xs, 0, X).
+sum_constraint([X|Xs]):- 
+    sum_list(Xs, 0, X).
 
 % sum_list/3 take a list, a accumulator A and Sum and is true when 
 % the list the Sum is equal to the sum of elements in the list.
@@ -127,7 +191,8 @@ sum_list([Y|Ys], A, Sum) :-
 
 % product_constraint/1 take a list and is true when the first element is equal
 % to the product of other elements.
-product_constraint([X|Xs]):- product_list(Xs, 1, X).
+product_constraint([X|Xs]):- 
+    product_list(Xs, 1, X).
 
 % product_list/3 take a list, a accumulator A and Product and is true when 
 % the list the Product is equal to the product of elements in the list.
@@ -137,13 +202,13 @@ product_list([Y|Ys], A, Product) :-
     A1 #= Y * A,
     product_list(Ys, A1, Product).
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
-%Labeling means systematically trying out values for the finite domain variables Vars until all of them are ground.
-no_variable([_Headingrow|Rows]) :- maplist(label, Rows).
+
+
+
 
 
 
