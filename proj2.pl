@@ -1,4 +1,4 @@
-%  File       : project2.pl
+%  File       : proj2.pl
 %  Author     : Tianyi Mo
 %  Student ID : 875556
 %  Date       : October 2019
@@ -7,23 +7,32 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This file implement the puzzle_solution(Puzzle)
-
-% Define the test puzzle solution finder by defining a puzzle_solution/1
-% puzzle_solution(Puzzle)
-% such that Puzzle is a list of list represent square matrix, 
 %
-% The strategy used is to decompose the complex problem to 4 simpler
-% constraints, square_matrix_constriant, number_constraint, diagonal_constraint
-% and heading_constraint. Each of them test specific part of restriction of the
+% Define the puzzle solution finder by defining a the predicate 
+% puzzle_solution/1, such that Puzzle is a list of list representing a 
+% square matrix. The predicate can be used to find solutions for the Puzzle  
+% and to check wether a Puzzle is valid. To use puzzle_solution/1, all entries
+% in the first row and column should be give.
+% 
+% Example:
+% Puzzle=[[0,14,10,35],[14,_,_,_],[15,_,_,_],[28,_,1,_]],
+% puzzle_solution(Puzzle).
+% 
+% The strategy used is to decompose the complex problem to 4 constraints, 
+% square_matrix_constriant, number_constraint, diagonal_constraint and 
+% heading_constraint. Each of them test specific part of restriction of the
 % puzzle.
-
-
 
 % used library
 :-ensure_loaded(library(clpfd)).
 :-ensure_loaded(library(apply)).
 
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The Problem
+% The Puzzle: As described in the specification, the Puzzle is a n*n matrix 
+% the first row (C1, C2, .. Cn) is the cloumn headng.
+% the first cloumn (R1, R2, ..Rn) is the row heading.
+% the upper left corner of the puzzle is not meaningful.
 %   Puzzle
 %   | _ |C1 |C2 |C3 | . .|Cn |
 %   |R1 |X11|X12|X13| . .|X1n|
@@ -33,9 +42,24 @@
 %   |.  |.  |.  |.  |   .|.  |
 %   |Rn |Xn1|Xn2|Xn3|.  .|Xnn|
 
-%   Rule: 
-%
+% Rule and Constraints:
+% 1. All non-header squares should be fill with a single digit 1–9, which means
+% 2. Each row and each column contains no repeated digits,
+% 3. All squares on the diagonal line from upper left to lower right are same
+% 4. The heading of each row and column is either the sum or the product of 
+% all the digits in that row or column
 
+% Assumptions:
+% Assume that when when puzzle_solution/1 predicate is called, its argument 
+% will be a proper list of proper lists, and all the header squares of the 
+% puzzle (plus the ignored corner square) are bound to integers. Some of the 
+% other squares in the puzzle may also be bound to integers, but the others 
+% will be unbound. When puzzle_solution/1 succeeds, its argument must be 
+% ground. 
+% You may assume your code will only be tested with proper puzzles, which 
+% have at most one solution. Of course, if the puzzle is not solvable, the 
+% predicate should fail, and it should never succeed with a puzzle argument 
+% that is not a valid solution.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Code Structure
@@ -48,11 +72,13 @@
 % SECTION 3 DIAGONAL_CONSTRAINT
 % SECTION 4 HEADING_CONSTRAINT
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SECTION 0 PUZZLE_SOLUTION
 %
-% puzzle_solution/1 take a Puzzle and holds when the Puzzle satisfy following 
-% 4 constraints: 
+% puzzle_solution/1 take a Puzzle (list of list) with all number in the first
+% row and first column are bound to integer and holds when the Puzzle satisfy 
+% following 4 constraints: 
 % 1.square_matrix_constraint: 
 %       Hold when the Puzzle is square.
 % 2.number_constraint:        
@@ -75,6 +101,7 @@ puzzle_solution(Puzzle) :-
     % labelling
     maplist(label, Puzzle).
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SECTION 1 SQUARE_MAXTIX_CONSTRAINT: 
 %
@@ -83,6 +110,7 @@ puzzle_solution(Puzzle) :-
 % row in the Puzzle have same number of elements as the number of rows.
 square_matrix_constriant(Puzzle):-
     maplist(same_length(Puzzle), Puzzle).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SECTION 2 NUMBER_CONSTRAINT
@@ -113,7 +141,7 @@ no_repeated_number([_|Row]):-
     all_distinct(Row).
 
 % size_limit/1 take a variable X and is true when the variable is greater than 
-% or equal to 1 and less than or equal to 9. It use clpfd function "in/2"
+% or equal to 1 and less than or equal to 9. It use clpfd predicate "in/2"
 size_limit(X):- X in 1..9.
 
 
@@ -139,7 +167,6 @@ equal([X|Xs]):-
 equal(_,[]).
 equal(X,[Y|Ys]):-
     equal(X,Ys),X=Y.
-
 
 % matrix_diag/2 take Matrix and Matrix and List, is true when the list is the 
 % top left to bottom right diagonal of the Matrix.
@@ -167,7 +194,6 @@ heading_constraint(Puzzle):-
     TransposePuzzle = [_|Cloumns],
     maplist(list_heading_constraint, Rows),
     maplist(list_heading_constraint, Cloumns).
-
 
 % list_heading_constraint/1 take a list (row or column of Puzzle), it is true
 % when the heading equal to sum of rest or product of rest. It uses the prolog
@@ -202,19 +228,8 @@ product_list([Y|Ys], A, Product) :-
     A1 #= Y * A,
     product_list(Ys, A1, Product).
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-
-
-
-
-
-
-
-
-% sum_constraint([5,2,A,1,B]), [A, B] ins 1..9, label([A, 3, B]). 
 
 
 
